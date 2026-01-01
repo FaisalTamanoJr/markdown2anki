@@ -13,3 +13,7 @@
 ## Installation
 
 ## Usage
+
+## Notes/Rules
+
+1. Headings should not include formatting like bold, italics/emphasis, etc.
