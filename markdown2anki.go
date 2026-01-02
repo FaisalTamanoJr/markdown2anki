@@ -10,6 +10,7 @@ import (
 	"github.com/kaleocheng/goldmark"
 	"github.com/kaleocheng/goldmark/ast"
 	"github.com/kaleocheng/goldmark/extension"
+	extensionast "github.com/kaleocheng/goldmark/extension/ast"
 	"github.com/kaleocheng/goldmark/text"
 )
 
@@ -19,11 +20,55 @@ type card struct {
 	back      string
 }
 
-/*
-func append_to_anki(md_card card) {
+func extract_text(node ast.Node, source []byte) string {
+	var sb strings.Builder
 
+	ast.Walk(node, func(child ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		if text, ok := child.(*ast.Text); ok {
+			sb.Write(text.Text(source))
+		}
+
+		return ast.WalkContinue, nil
+	})
+
+	return strings.TrimSpace(sb.String())
+}
+
+func extract_table_basic(table_node *extensionast.Table, title string, source []byte, output_file os.File) {
+	ast.Walk(table_node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		if row, ok := n.(*extensionast.TableRow); ok { // if node is a table row
+			append_to_anki(create_basic_card(row, source), title, output_file)
+			return ast.WalkSkipChildren, nil
+		}
+
+		return ast.WalkContinue, nil
+	})
+}
+
+func create_basic_card(row *extensionast.TableRow, source []byte) card {
+	return card{
+		front:     extract_text(row.FirstChild(), source),
+		back:      extract_text(row.FirstChild().NextSibling(), source),
+		card_type: "Basic",
+	}
+}
+
+/*
+func extract_list_cloze(list_node *ast.List, title string, source []byte, output_file os.File) {
 }
 */
+
+func append_to_anki(md_card card, title string, output_file os.File) {
+	output_file.WriteString("\n" + md_card.card_type + "\t" + title + "\t" + md_card.back + "\t" + md_card.front)
+}
 
 func main() {
 	// Assign variables & CMDLINE parsing
@@ -52,6 +97,7 @@ func main() {
 
 	// Walk the md input AST tree and track current section
 	var current_section string
+	var deck_title string
 	ast.Walk(md_parsed, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -60,17 +106,23 @@ func main() {
 		// if it is a heading, table, or list
 		switch node := n.(type) {
 		case *ast.Heading:
-			current_section = string(node.FirstChild().Text(source))
+			if node.Level == 1 {
+				deck_title = extract_text(node, source)
+			} else if node.Level == 2 {
+				current_section = extract_text(node, source)
+			}
 
-		case *ast.Table:
+		case *extensionast.Table:
 			if current_section == "0. Terminologies" {
-				// TODO
+				extract_table_basic(node, deck_title, source, *output_file)
 			}
 
-		case *ast.List:
-			if current_section == "## 1. Facts" {
-				// TODO
-			}
+			/*
+				case *ast.List:
+					if current_section == "1. Facts" {
+						// TODO
+					}
+			*/
 		}
 
 		return ast.WalkContinue, nil
