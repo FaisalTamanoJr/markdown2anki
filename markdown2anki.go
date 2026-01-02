@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/alexflint/go-arg"
@@ -61,10 +62,52 @@ func create_basic_card(row *extensionast.TableRow, source []byte) card {
 	}
 }
 
-/*
 func extract_list_cloze(list_node *ast.List, title string, source []byte, output_file os.File) {
+	ast.Walk(list_node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		if point, ok := n.(*ast.ListItem); ok { // if node is a bullet point
+			append_to_anki(create_cloze_card(point, source), title, output_file)
+			return ast.WalkSkipChildren, nil
+		}
+
+		return ast.WalkContinue, nil
+	})
 }
-*/
+
+func create_cloze_card(list_node *ast.ListItem, source []byte) card {
+	var sb strings.Builder
+
+	cloze_no := 1
+	ast.Walk(list_node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+
+		switch node := n.(type) {
+		case *ast.Text:
+			sb.Write(node.Text(source))
+
+		case *ast.Emphasis:
+			emphasized_text := extract_text(node, source)
+			sb.WriteString("{{c" + strconv.Itoa(cloze_no) + "::" + emphasized_text + "}}")
+			if node.Level == 2 {
+				cloze_no++
+			}
+			return ast.WalkSkipChildren, nil
+		}
+
+		return ast.WalkContinue, nil
+	})
+
+	return card{
+		front:     "",
+		back:      sb.String(),
+		card_type: "Cloze",
+	}
+}
 
 func append_to_anki(md_card card, title string, output_file os.File) {
 	output_file.WriteString("\n" + md_card.card_type + "\t" + title + "\t" + md_card.back + "\t" + md_card.front)
@@ -117,14 +160,15 @@ func main() {
 				extract_table_basic(node, deck_title, source, *output_file)
 			}
 
-			/*
-				case *ast.List:
-					if current_section == "1. Facts" {
-						// TODO
-					}
-			*/
+		case *ast.List:
+			if current_section == "1. Facts" {
+				extract_list_cloze(node, deck_title, source, *output_file)
+			}
 		}
 
 		return ast.WalkContinue, nil
 	})
+
+	// Add a newline at the end (haven't tested if this is necessary but my reference export anki card did this)
+	output_file.WriteString("\n")
 }

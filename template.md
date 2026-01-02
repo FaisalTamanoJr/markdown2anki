@@ -1,10 +1,4 @@
----
-title: Title of Card
-tags: []
-date: 
----
-
-# Title of Card
+# Title of Deck
 
 ## 0. Terminologies
 

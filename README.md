@@ -1,5 +1,7 @@
 ## Objectives
 
+I made this to assist me in my studies, so that I can easily make flash cards while taking notes and reading.
+
 **Main design goal: easy to install, learn, and use**
 
 1. To be able to easily convert markdown notes to a file that can easily be imported in Anki via the command line.
@@ -12,8 +14,23 @@
 
 ## Installation
 
+Download it in the [releases](https://github.com/FaisalTamanoJr/markdown2anki/releases) page
+
+If you want to compile it yourself, just download [Go](https://go.dev/), clone the repository and open the directory. Then, run in the terminal (while in the repo directory) `go build markdown2anki.go`.
+
 ## Usage
 
-## Notes/Rules
+- In the markdown file, make sure that a bullet point text (in the **1. Facts** section) only has either italics or bold but not both.
+- Check out the [template.md](https://github.com/FaisalTamanoJr/markdown2anki/blob/main/template.md?plain=1) as a basis for writing md files for anki conversion
 
-1. Headings should not include formatting like bold, italics/emphasis, etc.
+```
+Usage: markdown2anki.exe [--output_directory OUTPUT_DIRECTORY] INPUT_MD_FILE
+
+Positional arguments:
+  INPUT_MD_FILE
+
+Options:
+  --output_directory OUTPUT_DIRECTORY, -O OUTPUT_DIRECTORY [default: .]
+  --help, -h             display this help and exit
+
+```
